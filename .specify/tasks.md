@@ -23,8 +23,8 @@
 
 ## 階段三：感測器數據
 
-- [ ] 建立感測器管理（MotionManager.swift）
-- [ ] 顯示陀螺儀和加速度計 xyz 軸數據
+- [x] 建立感測器管理（MotionManager.swift）
+- [x] 顯示陀螺儀和加速度計 xyz 軸數據
 
 ---
 
