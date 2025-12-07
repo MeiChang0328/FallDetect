@@ -17,6 +17,7 @@ struct RunTrackingView: View {
     @StateObject private var locationManager = LocationManager()
     @StateObject private var motionManager = MotionManager()
     @StateObject private var fallDetection = FallDetection()
+    @StateObject private var metronome = Metronome()
     @ObservedObject var recordStore: RunRecordStore
     @ObservedObject var settings = Settings.shared
     @State private var showSummary = false
@@ -30,48 +31,92 @@ struct RunTrackingView: View {
 
     var body: some View {
         ZStack(alignment: .topTrailing) {
-            VStack(spacing: 30) {
-            // 時間顯示
-            VStack(spacing: 10) {
-                Text("跑步時間")
-                    .font(.headline)
-                    .foregroundColor(.secondary)
-                Text(formatTime(tracker.elapsedTime))
-                    .font(.system(size: 48, weight: .bold))
-            }
-            .padding()
+            ScrollView {
+                VStack(spacing: 20) {
+                    // 時間顯示
+                    VStack(spacing: 5) {
+                        Text("跑步時間")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                        Text(formatTime(tracker.elapsedTime))
+                            .font(.system(size: 70, weight: .bold))
+                            .padding(.bottom,50)
+                    }
+                    .padding(.vertical, 8)
+                    
+                    // 步數和步頻 - 橫向排列節省空間
+                    HStack(spacing: 20) {
+                        VStack(spacing: 5) {
+                            Text("步數")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            Text("\(tracker.stepCount)")
+                                .font(.system(size: 36, weight: .semibold))
+                        }
+                        .frame(maxWidth: .infinity)
+                        
+                        Divider()
+                            .frame(height: 40)
+                        
+                        VStack(spacing: 5) {
+                            Text("步頻")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            Text("\(Int(tracker.cadence))")
+                                .font(.system(size: 36, weight: .semibold))
+                            Text("步/分")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                        }
+                        .frame(maxWidth: .infinity)
+                    }
+                    .padding(.vertical, 8)
+                    
+                    // 節拍器控制 - 緊湊版
+                    VStack(spacing: 5) {
+                        Text("節拍器")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        
+                        HStack(spacing: 15) {
+                            Button(action: {
+                                metronome.decreaseBPM()
+                            }) {
+                                Image(systemName: "minus.circle.fill")
+                                    .font(.system(size: 24))
+                                    .foregroundColor(.blue)
+                            }
+                            
+                            Text("\(metronome.bpm)")
+                                .font(.system(size: 28, weight: .bold))
+                                .frame(minWidth: 60)
+                            
+                            Button(action: {
+                                metronome.increaseBPM()
+                            }) {
+                                Image(systemName: "plus.circle.fill")
+                                    .font(.system(size: 24))
+                                    .foregroundColor(.blue)
+                            }
+                        }
+                        Text("BPM")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(.top,50)
             
-            // 步數顯示
-            VStack(spacing: 10) {
-                Text("步數")
-                    .font(.headline)
-                    .foregroundColor(.secondary)
-                Text("\(tracker.stepCount)")
-                    .font(.system(size: 36, weight: .semibold))
-            }
-            .padding()
-            
-            // 步頻顯示
-            VStack(spacing: 10) {
-                Text("每分鐘步頻")
-                    .font(.headline)
-                    .foregroundColor(.secondary)
-                Text("\(Int(tracker.cadence)) 步/分鐘")
-                    .font(.system(size: 24, weight: .medium))
-            }
-            .padding()
-            
-            // 位置顯示
-            VStack(spacing: 10) {
+            // 位置顯示 - 緊湊版
+            VStack(spacing: 5) {
                 Text("位置")
-                    .font(.headline)
+                    .font(.caption)
                     .foregroundColor(.secondary)
                 Text(locationManager.locationString)
-                    .font(.system(size: 14, weight: .regular))
+                    .font(.system(size: 12, weight: .regular))
                     .multilineTextAlignment(.center)
                     .foregroundColor(.secondary)
+                    .lineLimit(2)
             }
-            .padding()
+            .padding(.top, 30)
             
             // 跌倒偵測狀態（僅在跑步時顯示）
             if tracker.isRunning {
@@ -97,11 +142,11 @@ struct RunTrackingView: View {
             
             // 感測器數據（可展開）
             if showSensorData {
-                VStack(spacing: 15) {
-                    // 加速度計數據
-                    VStack(alignment: .leading, spacing: 8) {
+                VStack(spacing: 10) {
+                    // 加速度計數據 - 緊湊版
+                    VStack(alignment: .leading, spacing: 5) {
                         Text("加速度 (m/s²)")
-                            .font(.headline)
+                            .font(.caption)
                             .foregroundColor(.secondary)
                         HStack {
                             SensorDataItem(label: "X", value: motionManager.acceleration.x)
@@ -109,14 +154,14 @@ struct RunTrackingView: View {
                             SensorDataItem(label: "Z", value: motionManager.acceleration.z)
                         }
                     }
-                    .padding()
+                    .padding(8)
                     .background(Color(.systemGray6))
-                    .cornerRadius(10)
+                    .cornerRadius(8)
                     
-                    // 陀螺儀數據
-                    VStack(alignment: .leading, spacing: 8) {
+                    // 陀螺儀數據 - 緊湊版
+                    VStack(alignment: .leading, spacing: 5) {
                         Text("角速度 (rad/s)")
-                            .font(.headline)
+                            .font(.caption)
                             .foregroundColor(.secondary)
                         HStack {
                             SensorDataItem(label: "X", value: motionManager.rotationRate.x)
@@ -124,27 +169,25 @@ struct RunTrackingView: View {
                             SensorDataItem(label: "Z", value: motionManager.rotationRate.z)
                         }
                     }
-                    .padding()
+                    .padding(8)
                     .background(Color(.systemGray6))
-                    .cornerRadius(10)
+                    .cornerRadius(8)
                 }
                 .padding(.horizontal)
             }
             
             // 顯示/隱藏感測器數據按鈕
-            Button(action: {
-                showSensorData.toggle()
-            }) {
-                HStack {
-                    Image(systemName: showSensorData ? "chevron.up" : "chevron.down")
-                    Text(showSensorData ? "隱藏感測器數據" : "顯示感測器數據")
-                }
-                .font(.caption)
-                .foregroundColor(.blue)
-            }
-            .padding(.top, 5)
-            
-            Spacer()
+//            Button(action: {
+//                showSensorData.toggle()
+//            }) {
+//                HStack {
+//                    Image(systemName: showSensorData ? "chevron.up" : "chevron.down")
+//                    Text(showSensorData ? "隱藏感測器數據" : "顯示感測器數據")
+//                }
+//                .font(.caption)
+//                .foregroundColor(.blue)
+//            }
+//            .padding(.top, 5)
             
             // 開始/停止按鈕
             Button(action: {
@@ -153,16 +196,18 @@ struct RunTrackingView: View {
                     locationManager.stopLocationUpdates()
                     motionManager.stopUpdates()
                     fallDetection.reset()
+                    metronome.stop()
                     showSummary = true
                 } else {
                     tracker.start()
                     locationManager.startLocationUpdates()
                     motionManager.startUpdates()
                     fallDetection.reset()
+                    metronome.start()
                 }
             }) {
                 Text(tracker.isRunning ? "停止" : "開始")
-                    .font(.title2)
+                    .font(.title3)
                     .fontWeight(.bold)
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
@@ -170,11 +215,10 @@ struct RunTrackingView: View {
                     .background(tracker.isRunning ? Color.red : Color.green)
                     .cornerRadius(12)
             }
-            
             .padding(.horizontal)
-            .padding(.bottom, 10)
+            .padding(.top, 50)
             
-            // 測試按鈕（保留）
+            // 測試按鈕
             Button(action: {
                 fallDetection.triggerTestFall()
             }) {
@@ -182,16 +226,19 @@ struct RunTrackingView: View {
                     Image(systemName: "flame.fill")
                     Text("測試跌倒事件")
                 }
-                .font(.headline)
+                .font(.subheadline)
                 .foregroundColor(.white)
                 .frame(maxWidth: .infinity)
-                .padding()
+                .padding(.vertical, 12)
                 .background(Color.orange)
                 .cornerRadius(12)
             }
-
+            .padding(.horizontal)
+            .padding(.bottom, 20)
+                }
+                .padding(.top, 60) // 為右上角按鈕留空間
             }
-            // 右上角圓形按鈕
+            // 右上角圓形按鈕（寄信）
             Button(action: {
                 sendFallAlertEmail()
             }) {
@@ -291,31 +338,33 @@ struct RunTrackingView: View {
         if let engine = hapticEngine {
             do {
                 var events: [CHHapticEvent] = []
-                // A sharp transient (like a tap)
-                let sharpTap = CHHapticEvent(eventType: .hapticTransient,
-                                             parameters: [
-                                                CHHapticEventParameter(parameterID: .hapticIntensity, value: 1.0),
-                                                CHHapticEventParameter(parameterID: .hapticSharpness, value: 1.0)
-                                             ],
-                                             relativeTime: 0)
-                events.append(sharpTap)
-                // A short strong continuous buzz
-                let buzz = CHHapticEvent(eventType: .hapticContinuous,
-                                         parameters: [
-                                            CHHapticEventParameter(parameterID: .hapticIntensity, value: 0.9),
-                                            CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.7)
-                                         ],
-                                         relativeTime: 0.05,
-                                         duration: 0.4)
-                events.append(buzz)
+                
+                // 創建更強烈的警報模式：三次強烈的敲擊 + 持續震動
+                for i in 0..<3 {
+                    let time = Double(i) * 0.15
+                    // 每次敲擊都是最強強度
+                    let tap = CHHapticEvent(eventType: .hapticTransient,
+                                           parameters: [
+                                              CHHapticEventParameter(parameterID: .hapticIntensity, value: 1.0),
+                                              CHHapticEventParameter(parameterID: .hapticSharpness, value: 1.0)
+                                           ],
+                                           relativeTime: time)
+                    events.append(tap)
+                }
+                
+                // 持續的強烈震動
+                let continuousBuzz = CHHapticEvent(eventType: .hapticContinuous,
+                                                   parameters: [
+                                                      CHHapticEventParameter(parameterID: .hapticIntensity, value: 1.0),
+                                                      CHHapticEventParameter(parameterID: .hapticSharpness, value: 1.0)
+                                                   ],
+                                                   relativeTime: 0.5,
+                                                   duration: 0.8)
+                events.append(continuousBuzz)
                 
                 let pattern = try CHHapticPattern(events: events, parameters: [])
                 let player = try engine.makePlayer(with: pattern)
                 try player.start(atTime: 0)
-                
-                // Repeat the pattern a few times with small gaps for attention
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { try? player.start(atTime: 0) }
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { try? player.start(atTime: 0) }
             } catch {
                 // Fallback to repeated system vibration
                 fallbackStrongVibration()
