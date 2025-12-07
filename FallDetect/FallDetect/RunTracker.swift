@@ -6,6 +6,8 @@
 //
 
 import Foundation
+import CoreMotion
+import Combine
 
 class RunTracker: ObservableObject {
     @Published var isRunning = false
