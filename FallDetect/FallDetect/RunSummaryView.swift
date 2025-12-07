@@ -11,6 +11,7 @@ import CoreLocation
 struct RunSummaryView: View {
     @ObservedObject var tracker: RunTracker
     let location: CLLocation?
+    @ObservedObject var recordStore: RunRecordStore
     @Environment(\.dismiss) var dismiss
     
     var averageCadence: Double {
@@ -40,10 +41,19 @@ struct RunSummaryView: View {
                 Spacer()
                 
                 Button(action: {
+                    // 保存記錄
+                    let record = RunRecord(
+                        duration: tracker.elapsedTime,
+                        stepCount: tracker.stepCount,
+                        averageCadence: averageCadence,
+                        location: location
+                    )
+                    recordStore.addRecord(record)
+                    
                     tracker.reset()
                     dismiss()
                 }) {
-                    Text("完成")
+                    Text("完成並保存")
                         .font(.title2)
                         .fontWeight(.bold)
                         .foregroundColor(.white)
@@ -107,6 +117,6 @@ struct SummaryRow: View {
 }
 
 #Preview {
-    RunSummaryView(tracker: RunTracker(), location: nil)
+    RunSummaryView(tracker: RunTracker(), location: nil, recordStore: RunRecordStore())
 }
 

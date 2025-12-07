@@ -9,9 +9,21 @@ import SwiftUI
 
 @main
 struct FallDetectApp: App {
+    @StateObject private var recordStore = RunRecordStore()
+    
     var body: some Scene {
         WindowGroup {
-            RunTrackingView()
+            TabView {
+                RunTrackingView(recordStore: recordStore)
+                    .tabItem {
+                        Label("跑步", systemImage: "figure.run")
+                    }
+                
+                HistoryView(recordStore: recordStore)
+                    .tabItem {
+                        Label("記錄", systemImage: "clock.arrow.circlepath")
+                    }
+            }
         }
     }
 }

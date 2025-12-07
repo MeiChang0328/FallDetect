@@ -6,11 +6,13 @@
 //
 
 import SwiftUI
+import CoreMotion
 
 struct RunTrackingView: View {
     @StateObject private var tracker = RunTracker()
     @StateObject private var locationManager = LocationManager()
     @StateObject private var motionManager = MotionManager()
+    @ObservedObject var recordStore: RunRecordStore
     @State private var showSummary = false
     @State private var showSensorData = false
     
@@ -138,7 +140,7 @@ struct RunTrackingView: View {
             locationManager.requestPermission()
         }
         .sheet(isPresented: $showSummary) {
-            RunSummaryView(tracker: tracker, location: locationManager.location)
+            RunSummaryView(tracker: tracker, location: locationManager.location, recordStore: recordStore)
         }
     }
     
@@ -172,6 +174,6 @@ struct SensorDataItem: View {
 }
 
 #Preview {
-    RunTrackingView()
+    RunTrackingView(recordStore: RunRecordStore())
 }
 

@@ -30,11 +30,11 @@
 
 ## 階段四：記錄功能
 
-- [ ] 設計並建立數據模型（RunRecord.swift）
-- [ ] 實作數據儲存管理（RunRecordStore.swift）
-- [ ] 建立歷史記錄列表畫面（HistoryView.swift）
-- [ ] 建立記錄詳情畫面（RecordDetailView.swift）
-- [ ] 實作刪除記錄功能
+- [x] 設計並建立數據模型（RunRecord.swift）
+- [x] 實作數據儲存管理（RunRecordStore.swift）
+- [x] 建立歷史記錄列表畫面（HistoryView.swift）
+- [x] 建立記錄詳情畫面（RecordDetailView.swift）
+- [x] 實作刪除記錄功能
 
 ---
 
@@ -55,5 +55,5 @@
 
 ## 其他
 
-- [ ] 建立導航結構（Tab 或 Navigation）整合所有畫面
+- [x] 建立導航結構（Tab 或 Navigation）整合所有畫面
 
