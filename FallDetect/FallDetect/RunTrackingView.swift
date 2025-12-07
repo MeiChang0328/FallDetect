@@ -9,7 +9,8 @@ import SwiftUI
 import CoreMotion
 import Combine
 import MessageUI
-
+import AudioToolbox
+import CoreHaptics
 
 struct RunTrackingView: View {
     @StateObject private var tracker = RunTracker()
@@ -23,9 +24,13 @@ struct RunTrackingView: View {
     @State private var showFallAlert = false
     @State private var showMailComposer = false
     @State private var mailComposer: MFMailComposeViewController?
-    
+    @State private var shouldPresentMailOnAlertDismiss = false
+    @State private var hapticEngine: CHHapticEngine?
+    @State private var alertHapticTimer: Timer?
+
     var body: some View {
-        VStack(spacing: 30) {
+        ZStack(alignment: .topTrailing) {
+            VStack(spacing: 30) {
             // 時間顯示
             VStack(spacing: 10) {
                 Text("跑步時間")
@@ -165,45 +170,89 @@ struct RunTrackingView: View {
                     .background(tracker.isRunning ? Color.red : Color.green)
                     .cornerRadius(12)
             }
+            
             .padding(.horizontal)
-            .padding(.bottom, 30)
+            .padding(.bottom, 10)
+            
+            // 測試按鈕（保留）
+            Button(action: {
+                fallDetection.triggerTestFall()
+            }) {
+                HStack {
+                    Image(systemName: "flame.fill")
+                    Text("測試跌倒事件")
+                }
+                .font(.headline)
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .padding()
+                .background(Color.orange)
+                .cornerRadius(12)
+            }
+
+            }
+            // 右上角圓形按鈕
+            Button(action: {
+                sendFallAlertEmail()
+            }) {
+                Image(systemName: "envelope.fill")
+                    .foregroundColor(.white)
+                    .frame(width: 44, height: 44)
+                    .background(Circle().fill(Color.blue))
+                    .shadow(radius: 2)
+            }
+            .padding(.top, 16)
+            .padding(.trailing, 20)
         }
         .onAppear {
             locationManager.requestPermission()
-            // 設定跌倒偵測回調
+            prepareHaptics()
             fallDetection.onFallDetected = {
+                // 顯示 Alert，並在關閉後再彈出寄信視窗
                 showFallAlert = true
-                // 如果啟用了跌倒偵測且有設定 email，則發送通知
-                if settings.isFallDetectionEnabled && !settings.emergencyEmail.isEmpty {
-                    sendFallAlertEmail()
-                }
+                shouldPresentMailOnAlertDismiss = true
+                // 開始震動循環
+                startAlertHapticLoop()
             }
         }
         .onReceive(Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()) { _ in
             // 定期分析感測器數據進行跌倒偵測
-            if tracker.isRunning {
+            if tracker.isRunning, let attitude = motionManager.attitude {
                 fallDetection.analyzeMotion(
                     acceleration: motionManager.acceleration,
                     rotationRate: motionManager.rotationRate,
-                    attitude: motionManager.attitude
+                    attitude: attitude
                 )
             }
-        }
-        .alert("跌倒偵測", isPresented: $showFallAlert) {
-            Button("確定", role: .cancel) {
-                fallDetection.reset()
-            }
-        } message: {
-            Text("系統偵測到可能的跌倒事件。請確認您的安全狀況。")
         }
         .sheet(isPresented: $showSummary) {
             RunSummaryView(tracker: tracker, location: locationManager.location, recordStore: recordStore)
         }
-        .sheet(item: Binding(
-            get: { mailComposer != nil ? MailComposerWrapper(mailComposer: mailComposer!) : nil },
-            set: { if $0 == nil { mailComposer = nil } }
-        )) { wrapper in
-            MailComposerView(mailComposer: wrapper.mailComposer)
+        .sheet(isPresented: $showMailComposer, onDismiss: {
+            // 關閉寄信視窗後重置跌倒偵測狀態，持續跑步不停止
+            mailComposer = nil
+            fallDetection.reset()
+        }) {
+            if let composer = mailComposer {
+                MailComposerView(mailComposer: composer)
+            }
+        }
+        // 跌倒偵測提醒 Alert
+        .alert("跌倒偵測", isPresented: $showFallAlert) {
+            Button("確定", role: .cancel) {
+                // 停止震動循環
+                stopAlertHapticLoop()
+                // 重置偵測狀態，但不停止跑步
+                fallDetection.reset()
+                if shouldPresentMailOnAlertDismiss {
+                    shouldPresentMailOnAlertDismiss = false
+                    if settings.isFallDetectionEnabled && !settings.emergencyEmail.isEmpty {
+                        sendFallAlertEmail()
+                    }
+                }
+            }
+        } message: {
+            Text("系統偵測到可能的跌倒事件。請確認您的安全狀況。")
         }
     }
     
@@ -223,14 +272,87 @@ struct RunTrackingView: View {
         let locationString = locationManager.location != nil ? locationManager.locationString : nil
         if let composer = EmailService.shared.sendFallAlertEmail(to: settings.emergencyEmail, location: locationString) {
             mailComposer = composer
+            showMailComposer = true
         }
     }
-}
-
-// 用於在 SwiftUI 中顯示 MFMailComposeViewController 的包裝器
-struct MailComposerWrapper: Identifiable {
-    let id = UUID()
-    let mailComposer: MFMailComposeViewController
+    
+    private func prepareHaptics() {
+        guard CHHapticEngine.capabilitiesForHardware().supportsHaptics else { return }
+        do {
+            hapticEngine = try CHHapticEngine()
+            try hapticEngine?.start()
+        } catch {
+            print("Haptics engine start error: \(error)")
+            hapticEngine = nil
+        }
+    }
+    
+    private func triggerStrongAlertHaptics() {
+        if let engine = hapticEngine {
+            do {
+                var events: [CHHapticEvent] = []
+                // A sharp transient (like a tap)
+                let sharpTap = CHHapticEvent(eventType: .hapticTransient,
+                                             parameters: [
+                                                CHHapticEventParameter(parameterID: .hapticIntensity, value: 1.0),
+                                                CHHapticEventParameter(parameterID: .hapticSharpness, value: 1.0)
+                                             ],
+                                             relativeTime: 0)
+                events.append(sharpTap)
+                // A short strong continuous buzz
+                let buzz = CHHapticEvent(eventType: .hapticContinuous,
+                                         parameters: [
+                                            CHHapticEventParameter(parameterID: .hapticIntensity, value: 0.9),
+                                            CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.7)
+                                         ],
+                                         relativeTime: 0.05,
+                                         duration: 0.4)
+                events.append(buzz)
+                
+                let pattern = try CHHapticPattern(events: events, parameters: [])
+                let player = try engine.makePlayer(with: pattern)
+                try player.start(atTime: 0)
+                
+                // Repeat the pattern a few times with small gaps for attention
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { try? player.start(atTime: 0) }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { try? player.start(atTime: 0) }
+            } catch {
+                // Fallback to repeated system vibration
+                fallbackStrongVibration()
+            }
+        } else {
+            fallbackStrongVibration()
+        }
+    }
+    
+    private func fallbackStrongVibration() {
+        // Repeat system vibration 3 times with short intervals as a fallback
+        AudioServicesPlaySystemSound(kSystemSoundID_Vibrate)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            AudioServicesPlaySystemSound(kSystemSoundID_Vibrate)
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            AudioServicesPlaySystemSound(kSystemSoundID_Vibrate)
+        }
+        let generator = UINotificationFeedbackGenerator()
+        generator.notificationOccurred(.error)
+    }
+    
+    // 啟動警示震動循環
+    private func startAlertHapticLoop() {
+        // 先觸發一次強烈觸覺
+        triggerStrongAlertHaptics()
+        // 每 1.2 秒重複一次，直到 Alert 關閉
+        alertHapticTimer?.invalidate()
+        alertHapticTimer = Timer.scheduledTimer(withTimeInterval: 1.2, repeats: true) { _ in
+            triggerStrongAlertHaptics()
+        }
+    }
+    
+    private func stopAlertHapticLoop() {
+        alertHapticTimer?.invalidate()
+        alertHapticTimer = nil
+    }
 }
 
 struct MailComposerView: UIViewControllerRepresentable {
@@ -264,4 +386,3 @@ struct SensorDataItem: View {
 #Preview {
     RunTrackingView(recordStore: RunRecordStore())
 }
-

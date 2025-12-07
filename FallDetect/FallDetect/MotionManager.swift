@@ -26,9 +26,9 @@ class MotionManager: ObservableObject {
             return
         }
         
-        // 設定更新頻率（每秒 10 次）
-        motionManager.accelerometerUpdateInterval = 0.3
-        motionManager.gyroUpdateInterval = 0.3
+        // 設定更新頻率（每秒 100 次）
+        motionManager.accelerometerUpdateInterval = 1
+        motionManager.gyroUpdateInterval = 1
         
         // 開始加速度計更新
         if motionManager.isAccelerometerAvailable {
