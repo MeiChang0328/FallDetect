@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-ㄎ
 
 struct RunTrackingView: View {
     @StateObject private var tracker = RunTracker()
