@@ -6,15 +6,17 @@
 //
 
 import SwiftUI
-import CoreMotion
+ㄎ
 
 struct RunTrackingView: View {
     @StateObject private var tracker = RunTracker()
     @StateObject private var locationManager = LocationManager()
     @StateObject private var motionManager = MotionManager()
+    @StateObject private var fallDetection = FallDetection()
     @ObservedObject var recordStore: RunRecordStore
     @State private var showSummary = false
     @State private var showSensorData = false
+    @State private var showFallAlert = false
     
     var body: some View {
         VStack(spacing: 30) {
@@ -59,6 +61,28 @@ struct RunTrackingView: View {
                     .foregroundColor(.secondary)
             }
             .padding()
+            
+            // 跌倒偵測狀態（僅在跑步時顯示）
+            if tracker.isRunning {
+                VStack(spacing: 5) {
+                    HStack {
+                        Image(systemName: fallDetection.isFallDetected ? "exclamationmark.triangle.fill" : "checkmark.circle.fill")
+                            .foregroundColor(fallDetection.isFallDetected ? .red : .green)
+                        Text(fallDetection.isFallDetected ? "偵測到跌倒！" : "跌倒偵測中")
+                            .font(.caption)
+                            .foregroundColor(fallDetection.isFallDetected ? .red : .secondary)
+                    }
+                    if fallDetection.fallConfidence > 0 {
+                        Text("信心度: \(Int(fallDetection.fallConfidence * 100))%")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                    }
+                }
+                .padding(.horizontal)
+                .padding(.vertical, 8)
+                .background(fallDetection.isFallDetected ? Color.red.opacity(0.1) : Color.green.opacity(0.1))
+                .cornerRadius(8)
+            }
             
             // 感測器數據（可展開）
             if showSensorData {
@@ -117,11 +141,13 @@ struct RunTrackingView: View {
                     tracker.stop()
                     locationManager.stopLocationUpdates()
                     motionManager.stopUpdates()
+                    fallDetection.reset()
                     showSummary = true
                 } else {
                     tracker.start()
                     locationManager.startLocationUpdates()
                     motionManager.startUpdates()
+                    fallDetection.reset()
                 }
             }) {
                 Text(tracker.isRunning ? "停止" : "開始")
@@ -138,6 +164,27 @@ struct RunTrackingView: View {
         }
         .onAppear {
             locationManager.requestPermission()
+            // 設定跌倒偵測回調
+            fallDetection.onFallDetected = {
+                showFallAlert = true
+            }
+        }
+        .onReceive(Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()) { _ in
+            // 定期分析感測器數據進行跌倒偵測
+            if tracker.isRunning {
+                fallDetection.analyzeMotion(
+                    acceleration: motionManager.acceleration,
+                    rotationRate: motionManager.rotationRate,
+                    attitude: motionManager.attitude
+                )
+            }
+        }
+        .alert("跌倒偵測", isPresented: $showFallAlert) {
+            Button("確定", role: .cancel) {
+                fallDetection.reset()
+            }
+        } message: {
+            Text("系統偵測到可能的跌倒事件。請確認您的安全狀況。")
         }
         .sheet(isPresented: $showSummary) {
             RunSummaryView(tracker: tracker, location: locationManager.location, recordStore: recordStore)
