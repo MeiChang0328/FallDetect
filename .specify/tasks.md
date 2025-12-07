@@ -15,9 +15,9 @@
 
 ## 階段二：GPS 定位
 
-- [ ] 建立位置管理（LocationManager.swift）
-- [ ] 在主畫面顯示當前位置
-- [ ] 在 Info.plist 加入 NSLocationWhenInUseUsageDescription 權限
+- [x] 建立位置管理（LocationManager.swift）
+- [x] 在主畫面顯示當前位置
+- [x] 在 Info.plist 加入 NSLocationWhenInUseUsageDescription 權限
 
 ---
 

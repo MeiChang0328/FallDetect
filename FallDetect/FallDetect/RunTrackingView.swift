@@ -9,6 +9,7 @@ import SwiftUI
 
 struct RunTrackingView: View {
     @StateObject private var tracker = RunTracker()
+    @StateObject private var locationManager = LocationManager()
     @State private var showSummary = false
     
     var body: some View {
@@ -43,15 +44,29 @@ struct RunTrackingView: View {
             }
             .padding()
             
+            // 位置顯示
+            VStack(spacing: 10) {
+                Text("位置")
+                    .font(.headline)
+                    .foregroundColor(.secondary)
+                Text(locationManager.locationString)
+                    .font(.system(size: 14, weight: .regular))
+                    .multilineTextAlignment(.center)
+                    .foregroundColor(.secondary)
+            }
+            .padding()
+            
             Spacer()
             
             // 開始/停止按鈕
             Button(action: {
                 if tracker.isRunning {
                     tracker.stop()
+                    locationManager.stopLocationUpdates()
                     showSummary = true
                 } else {
                     tracker.start()
+                    locationManager.startLocationUpdates()
                 }
             }) {
                 Text(tracker.isRunning ? "停止" : "開始")
@@ -66,8 +81,11 @@ struct RunTrackingView: View {
             .padding(.horizontal)
             .padding(.bottom, 30)
         }
+        .onAppear {
+            locationManager.requestPermission()
+        }
         .sheet(isPresented: $showSummary) {
-            RunSummaryView(tracker: tracker)
+            RunSummaryView(tracker: tracker, location: locationManager.location)
         }
     }
     

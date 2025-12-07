@@ -6,9 +6,11 @@
 //
 
 import SwiftUI
+import CoreLocation
 
 struct RunSummaryView: View {
     @ObservedObject var tracker: RunTracker
+    let location: CLLocation?
     @Environment(\.dismiss) var dismiss
     
     var averageCadence: Double {
@@ -28,6 +30,10 @@ struct RunSummaryView: View {
                     SummaryRow(title: "跑步時間", value: formatTime(tracker.elapsedTime))
                     SummaryRow(title: "總步數", value: "\(tracker.stepCount) 步")
                     SummaryRow(title: "平均步頻", value: "\(Int(averageCadence)) 步/分鐘")
+                    
+                    if let location = location {
+                        SummaryRow(title: "位置", value: formatLocation(location))
+                    }
                 }
                 .padding()
                 
@@ -72,6 +78,12 @@ struct RunSummaryView: View {
             return String(format: "%02d:%02d", minutes, seconds)
         }
     }
+    
+    private func formatLocation(_ location: CLLocation) -> String {
+        let latitude = location.coordinate.latitude
+        let longitude = location.coordinate.longitude
+        return String(format: "%.6f, %.6f", latitude, longitude)
+    }
 }
 
 struct SummaryRow: View {
@@ -95,6 +107,6 @@ struct SummaryRow: View {
 }
 
 #Preview {
-    RunSummaryView(tracker: RunTracker())
+    RunSummaryView(tracker: RunTracker(), location: nil)
 }
 
