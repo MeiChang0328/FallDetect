@@ -23,6 +23,11 @@ struct FallDetectApp: App {
                     .tabItem {
                         Label("記錄", systemImage: "clock.arrow.circlepath")
                     }
+                
+                SettingsView()
+                    .tabItem {
+                        Label("設定", systemImage: "gearshape")
+                    }
             }
         }
     }

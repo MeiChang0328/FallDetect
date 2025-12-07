@@ -47,9 +47,9 @@
 
 ## 階段六：Email 通知
 
-- [ ] 建立設定畫面（SettingsView.swift）
-- [ ] 實作 Email 發送服務（EmailService.swift）
-- [ ] 跌倒時觸發 email 通知功能
+- [x] 建立設定畫面（SettingsView.swift）
+- [x] 實作 Email 發送服務（EmailService.swift）
+- [x] 跌倒時觸發 email 通知功能
 
 ---
 

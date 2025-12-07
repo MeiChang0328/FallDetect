@@ -6,9 +6,9 @@
 //
 
 import SwiftUI
-
 import CoreMotion
 import Combine
+import MessageUI
 
 
 struct RunTrackingView: View {
@@ -17,9 +17,12 @@ struct RunTrackingView: View {
     @StateObject private var motionManager = MotionManager()
     @StateObject private var fallDetection = FallDetection()
     @ObservedObject var recordStore: RunRecordStore
+    @ObservedObject var settings = Settings.shared
     @State private var showSummary = false
     @State private var showSensorData = false
     @State private var showFallAlert = false
+    @State private var showMailComposer = false
+    @State private var mailComposer: MFMailComposeViewController?
     
     var body: some View {
         VStack(spacing: 30) {
@@ -170,6 +173,10 @@ struct RunTrackingView: View {
             // 設定跌倒偵測回調
             fallDetection.onFallDetected = {
                 showFallAlert = true
+                // 如果啟用了跌倒偵測且有設定 email，則發送通知
+                if settings.isFallDetectionEnabled && !settings.emergencyEmail.isEmpty {
+                    sendFallAlertEmail()
+                }
             }
         }
         .onReceive(Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()) { _ in
@@ -192,6 +199,12 @@ struct RunTrackingView: View {
         .sheet(isPresented: $showSummary) {
             RunSummaryView(tracker: tracker, location: locationManager.location, recordStore: recordStore)
         }
+        .sheet(item: Binding(
+            get: { mailComposer != nil ? MailComposerWrapper(mailComposer: mailComposer!) : nil },
+            set: { if $0 == nil { mailComposer = nil } }
+        )) { wrapper in
+            MailComposerView(mailComposer: wrapper.mailComposer)
+        }
     }
     
     private func formatTime(_ time: TimeInterval) -> String {
@@ -204,6 +217,31 @@ struct RunTrackingView: View {
         } else {
             return String(format: "%02d:%02d", minutes, seconds)
         }
+    }
+    
+    private func sendFallAlertEmail() {
+        let locationString = locationManager.location != nil ? locationManager.locationString : nil
+        if let composer = EmailService.shared.sendFallAlertEmail(to: settings.emergencyEmail, location: locationString) {
+            mailComposer = composer
+        }
+    }
+}
+
+// 用於在 SwiftUI 中顯示 MFMailComposeViewController 的包裝器
+struct MailComposerWrapper: Identifiable {
+    let id = UUID()
+    let mailComposer: MFMailComposeViewController
+}
+
+struct MailComposerView: UIViewControllerRepresentable {
+    let mailComposer: MFMailComposeViewController
+    
+    func makeUIViewController(context: Context) -> MFMailComposeViewController {
+        return mailComposer
+    }
+    
+    func updateUIViewController(_ uiViewController: MFMailComposeViewController, context: Context) {
+        // 不需要更新
     }
 }
 
