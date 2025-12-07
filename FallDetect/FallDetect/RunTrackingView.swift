@@ -6,6 +6,11 @@
 //
 
 import SwiftUI
+<<<<<<< HEAD
+=======
+import CoreMotion
+import Combine
+>>>>>>> 1ece71c (debug)
 
 struct RunTrackingView: View {
     @StateObject private var tracker = RunTracker()
