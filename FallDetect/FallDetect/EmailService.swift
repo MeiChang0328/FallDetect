@@ -9,6 +9,7 @@ import Foundation
 import MessageUI
 import SwiftUI
 
+
 class EmailService: NSObject, ObservableObject {
     static let shared = EmailService()
     
