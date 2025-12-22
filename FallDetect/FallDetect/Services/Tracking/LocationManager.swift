@@ -3,18 +3,20 @@
 //  FallDetect
 //
 //  Created by 張郁眉 on 2025/12/7.
+//  Refactored to use @Observable on 2025/12/16
 //
 
 import Foundation
 import CoreLocation
-import Combine
+import Observation
 
-class LocationManager: NSObject, ObservableObject {
+@Observable
+final class LocationManager: NSObject {
     private let locationManager = CLLocationManager()
     
-    @Published var location: CLLocation?
-    @Published var authorizationStatus: CLAuthorizationStatus = .notDetermined
-    @Published var locationString: String = "取得位置中..."
+    var location: CLLocation?
+    var authorizationStatus: CLAuthorizationStatus = .notDetermined
+    var locationString: String = "取得位置中..."
     
     override init() {
         super.init()
@@ -50,11 +52,17 @@ class LocationManager: NSObject, ObservableObject {
         let longitude = location.coordinate.longitude
         locationString = String(format: "緯度: %.6f\n經度: %.6f", latitude, longitude)
     }
+    
+    deinit {
+        stopLocationUpdates()
+    }
 }
 
 extension LocationManager: CLLocationManagerDelegate {
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard let location = locations.last else { return }
+        
+        // @Observable 會自動追蹤屬性變更
         self.location = location
         updateLocationString()
     }
@@ -79,4 +87,3 @@ extension LocationManager: CLLocationManagerDelegate {
         }
     }
 }
-

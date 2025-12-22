@@ -3,17 +3,19 @@
 //  FallDetect
 //
 //  Created by 張郁眉 on 2025/12/7.
+//  Refactored to use @Observable on 2025/12/16
 //
 
 import Foundation
 import CoreMotion
-import Combine
+import Observation
 
-class RunTracker: ObservableObject {
-    @Published var isRunning = false
-    @Published var elapsedTime: TimeInterval = 0
-    @Published var stepCount: Int = 0
-    @Published var cadence: Double = 0 // 每分鐘步頻
+@Observable
+final class RunTracker {
+    var isRunning = false
+    var elapsedTime: TimeInterval = 0
+    var stepCount: Int = 0
+    var cadence: Double = 0 // 每分鐘步頻
     
     private var timer: Timer?
     private let pedometer = CMPedometer()
@@ -21,6 +23,8 @@ class RunTracker: ObservableObject {
     private var startStepCount: Int = 0
     private var lastStepCount: Int = 0
     private var lastCadenceUpdate: Date = Date()
+    
+    init() {}
     
     func start() {
         guard !isRunning else { return }
@@ -44,7 +48,8 @@ class RunTracker: ObservableObject {
             pedometer.startUpdates(from: Date()) { [weak self] data, error in
                 guard let self = self, let data = data, error == nil else { return }
                 
-                DispatchQueue.main.async {
+                // 使用 Task 在 MainActor 更新 UI
+                Task { @MainActor in
                     let currentSteps = data.numberOfSteps.intValue
                     self.stepCount = currentSteps
                     
@@ -80,5 +85,8 @@ class RunTracker: ObservableObject {
         startDate = nil
         lastStepCount = 0
     }
+    
+    deinit {
+        stop()
+    }
 }
-

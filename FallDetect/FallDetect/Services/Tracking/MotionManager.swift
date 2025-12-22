@@ -3,22 +3,26 @@
 //  FallDetect
 //
 //  Created by 張郁眉 on 2025/12/7.
+//  Refactored to use @Observable on 2025/12/16
 //
 
 import Foundation
 import CoreMotion
-import Combine
+import Observation
 
-class MotionManager: ObservableObject {
+@Observable
+final class MotionManager {
     private let motionManager = CMMotionManager()
     
-    @Published var acceleration: CMAcceleration = CMAcceleration(x: 0, y: 0, z: 0)
-    @Published var rotationRate: CMRotationRate = CMRotationRate(x: 0, y: 0, z: 0)
-    @Published var attitude: CMAttitude?
+    var acceleration: CMAcceleration = CMAcceleration(x: 0, y: 0, z: 0)
+    var rotationRate: CMRotationRate = CMRotationRate(x: 0, y: 0, z: 0)
+    var attitude: CMAttitude?
     
     var isAvailable: Bool {
         return motionManager.isAccelerometerAvailable && motionManager.isGyroAvailable
     }
+    
+    init() {}
     
     func startUpdates() {
         guard isAvailable else {
@@ -26,14 +30,15 @@ class MotionManager: ObservableObject {
             return
         }
         
-        // 設定更新頻率（每秒 100 次）
-        motionManager.accelerometerUpdateInterval = 1
-        motionManager.gyroUpdateInterval = 1
+        // 設定更新頻率（每秒 10 次，0.1 秒間隔）
+        motionManager.accelerometerUpdateInterval = 0.1
+        motionManager.gyroUpdateInterval = 0.1
         
         // 開始加速度計更新
         if motionManager.isAccelerometerAvailable {
             motionManager.startAccelerometerUpdates(to: .main) { [weak self] data, error in
                 guard let self = self, let data = data, error == nil else { return }
+                // @Observable 會自動追蹤變更
                 self.acceleration = data.acceleration
             }
         }
@@ -68,5 +73,8 @@ class MotionManager: ObservableObject {
                     acceleration.y * acceleration.y + 
                     acceleration.z * acceleration.z)
     }
+    
+    deinit {
+        stopUpdates()
+    }
 }
-
