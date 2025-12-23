@@ -405,8 +405,8 @@ struct SettingsView: View {
                                 .cornerRadius(12)
                                 .shadow(color: Color.appSuccess.opacity(0.3), radius: 4, x: 0, y: 2)
                             }
-                            .disabled(isSendingTestEmail || (emailInput.isEmpty && (settings?.emergencyEmail.isEmpty ?? true)))
-                            .opacity((isSendingTestEmail || (emailInput.isEmpty && (settings?.emergencyEmail.isEmpty ?? true))) ? 0.6 : 1.0)
+                            .disabled(isSendingTestEmail || (emailInput.isEmpty && settings.emergencyEmail.isEmpty))
+                            .opacity((isSendingTestEmail || (emailInput.isEmpty && settings.emergencyEmail.isEmpty)) ? 0.6 : 1.0)
                         }
                     }
                     
