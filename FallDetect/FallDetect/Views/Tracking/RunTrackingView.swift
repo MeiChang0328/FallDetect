@@ -244,11 +244,11 @@ struct RunTrackingView: View {
                         testFallButton
                     }
                 }
-                .padding(.top, 60) // 為右上角按鈕留空間
+//                .padding(.top, 10) // 為右上角按鈕留空間
             }
             
             // 右上角寄信按鈕
-            emailButton
+//            emailButton
         }
         .onAppear {
             setupView()
@@ -425,27 +425,27 @@ struct RunTrackingView: View {
         .padding(.bottom, 20)
     }
     
-    private var emailButton: some View {
-        Button(action: {
-            sendFallAlertEmail()
-        }) {
-            Image(systemName: "envelope.fill")
-                .font(.system(size: 20))
-                .foregroundColor(.white)
-                .frame(width: 50, height: 50)
-                .background(
-                    LinearGradient(
-                        colors: [Color.appPrimary, Color.appSecondary],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-                .clipShape(Circle())
-                .shadow(color: Color.appShadowMedium, radius: 6, x: 0, y: 3)
-        }
-        .padding(.top, 60)
-        .padding(.trailing, 20)
-    }
+//    private var emailButton: some View {
+//        Button(action: {
+//            sendFallAlertEmail()
+//        }) {
+//            Image(systemName: "envelope.fill")
+//                .font(.system(size: 20))
+//                .foregroundColor(.white)
+//                .frame(width: 50, height: 50)
+//                .background(
+//                    LinearGradient(
+//                        colors: [Color.appPrimary, Color.appSecondary],
+//                        startPoint: .topLeading,
+//                        endPoint: .bottomTrailing
+//                    )
+//                )
+//                .clipShape(Circle())
+//                .shadow(color: Color.appShadowMedium, radius: 6, x: 0, y: 3)
+//        }
+//        .padding(.top, 60)
+//        .padding(.trailing, 20)
+//    }
     
     // MARK: - Actions
     
